@@ -4,11 +4,13 @@
 
 /*
 	Snake(int ,int) - creates the snake at the given coordinates
-	drawSnake() - draws the snake on the screen
+	drawSnake() - draws the snake
 	changeDirection(int dir) - turns the snake in the given direction
-	move(int dir = direction_snake) - moves the snake one position in the given direction, if arguments are not passed, continue moving in the same direction
+	move(int dir) - moves the snake one position in the given direction
 	isHere(int x, int y) - checks if the snake is at the given coordinates 
-
+	eatFood(int, int) - eats the food by adding one scale to the body
+	hasCrashed() - checks if the snake collides with any of the edges of the screen
+	isFoodFound(int, int) - checks if the snake encountered food
 */
 
 
