@@ -1,4 +1,4 @@
-#include "D:\дипломна\AI-snake\freeglut\include\GL\freeglut.h"
+#include "Dependencies\freeglut\include\GL\freeglut.h"
 #include "Game.h"
 #include <iostream>
 #include <fstream>

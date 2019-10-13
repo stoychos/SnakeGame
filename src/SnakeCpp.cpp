@@ -1,6 +1,6 @@
 #include "Snake.h"
 #include "Food.h"
-#include "D:\дипломна\AI-snake\freeglut\include\GL\freeglut.h"
+#include "Dependencies\freeglut\include\GL\freeglut.h"
 #include <time.h>
 
 
