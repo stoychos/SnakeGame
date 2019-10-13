@@ -1,22 +1,16 @@
 #include "Scale.h"
-#include "Dependencies\freeglut\freeglut.h"
+#include "D:\дипломна\AI-snake\freeglut\include\GL\freeglut.h"
 
 
- 
-
-
-//creates a scale and initialize x and y with the arguments
 Scale::Scale(int xx, int yy) : x(xx), y(yy) {
 
 }
 
-//returns x coordinate
 int Scale::getX() {
 	return x;
 
 }
 
-//returns y coordinate
 int Scale::getY() {
 	return y;
 }

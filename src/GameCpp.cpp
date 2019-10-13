@@ -1,17 +1,25 @@
 #include "Game.h"
-#include "Dependencies\freeglut\freeglut.h"
-#include <windows.h> 
-#define FPS 10
+#include "D:\дипломна\AI-snake\freeglut\include\GL\freeglut.h"
+#include <windows.h>
+#include <map>
+#include <vector>
+#include "Qtable.h"
+#include <time.h>
+#include <iostream>
+#include <fstream>
+#include <chrono>
 
-//inital coordinates of the snake 200,200
-Snake Game::sn(200, 200);
+#define BOOLEANS
+#define FPS 25
 
-//initial coordinates of the food 180,200
+Snake Game::sn(100, 100);
 Food Game::fd;
 
-//initial value for exist
 int Game::exist = 1;
- 
+
+int max_points = 0;
+
+Qtable qtable;
 
 //sets the viewport, projection matrix and modeview matrix
 //set black as color for the color buffer
@@ -25,26 +33,19 @@ void Game::init() {
 
 }
 
-//makes the window non resizable
 void Game::reshape(int, int) {
 	glutReshapeWindow(600, 600);
 
 }
 
-
-//timer callback function
 void Game::timer(int val)
 {
 	glutPostRedisplay();
 	glutTimerFunc(1000 / FPS, timer, 0);
 }
 
-
-//draws the game
 //sets the back buffer for drawing
 void Game::draw() {
-
- 
 	glDrawBuffer(GL_BACK);
 	glClear(GL_COLOR_BUFFER_BIT);
 
@@ -53,13 +54,7 @@ void Game::draw() {
 	glutSwapBuffers();
 }
 
-//starts the game
-//sets RGB mode and double buffering
-//creates window with size 600x600
-//calls draw function for rendering
-//calls glutReshapeFunc if the window is reshaped
-//gluSpecialFunc - keyboard listener
-//registers the time callback function to be triggered in 1000/FPS milliseconds
+
 int Game::startGame(int argc, char **argv) {
 
 	glutInit(&argc, argv);
@@ -83,46 +78,90 @@ int Game::startGame(int argc, char **argv) {
 
 }
 
-
-//draws the enclosure at the corner of the screen, the snake and the food
-//checks if the snake collides with itself or the end of the screen
-//if the food is eaten, new coordinates are generated, otherwise draws it at the same position 
 void Game::drawScene() {
+	direction best_direction;
+	double reward = 0;
+	int flag = 0;
+	int randn;
+	std::vector<int> current_state;
+	std::map<std::vector<int>, std::vector<double>>::iterator it_current_state;
+	std::vector<int> new_state;
+	std::map<std::vector<int>, std::vector<double>>::iterator it_new_state;
+
 	srand(time(0));
 	drawGrid();
+	if (sn.getSize() > max_points)
+		max_points = sn.getSize();
 
+	 
+	randn = rand() % (3 + 1);
+	
+	best_direction = (direction)randn;
+
+	 
 	sn.drawSnake();
+	
+	current_state = getState();
+	
+	it_current_state = qtable.getQtable()->find(current_state);
 
-	if (sn.hasCrashed()) {
-		MessageBox(NULL, L"LOOSER", L"GAME OVER",
-			0);
-		exit(0);
+	if (it_current_state != qtable.getQtable()->end()) {
+		
+		best_direction = qtable.getBestAction(it_current_state->second);
+		//std::cout << "Best direction: " << best_direction << std::endl;
+		 
+		flag = 1;
 	}
+	else {
+		qtable.getQtable()->insert(std::pair<std::vector<int>, std::vector<double>>(current_state, std::vector<double>(current_state.size(), 0)));
+	}
+	   
+	if (sn.hasCrashed()) {
+			reward = -1;
+			sn.restartGame();
 
+			Snake::died++;
+			std::cout << "Died : " << Snake::died << std::endl;
+			std::cout << "MAX POINTS " << max_points << std::endl;
+	}
+	
+	
+	while (true) {
+		if (!sn.isHere(fd.getX(), fd.getY())) {
+			fd.drawFood();
+			exist = 1;
+			break;
+		}
+		else {
+			fd.setX((rand() % 18 + 1) * 10);
+			fd.setY((rand() % 18 + 1) * 10);
+		}
+	}
+ 
 	if (sn.isFoodFound(fd.getX(), fd.getY())) {
 		sn.eatFood(fd.getX(), fd.getY());
 		exist = 0;
-	}
-	 
- 	
-	if (exist == 0) {
-		 
-		fd.setX((rand() % 38 + 1) * 10);
-		fd.setY((rand() % 38 + 1) * 10);
+		reward = 1;
 	}
 
-	//checks if the snake is at the coordinates where the food will be spawned
-	if (!sn.isHere(fd.getX(), fd.getY())) {
-		fd.drawFood();
-		exist = 1;
+	if (reward == 0) {
+		reward = -0.1;
 	}
-		sn.moveAuto();
-
-
  
+	sn.moveToDirection(best_direction);
+
+	new_state = getState();
+	it_new_state = qtable.getQtable()->find(new_state);
+
+	if (it_new_state != qtable.getQtable()->end()) {
+		qtable.updateTable(current_state, qtable.getQtable()->at(current_state)[best_direction], qtable.maxValue(it_new_state->second), best_direction, reward);
+	}
+	else {
+		qtable.updateTable(current_state, qtable.getQtable()->at(current_state)[best_direction], 0, best_direction, reward);	
+	}
+
 }
-
- 
+	
 //keyboard listener
 void Game::keyboardd(int key, int x, int y) {
 
@@ -152,7 +191,6 @@ void Game::keyboardd(int key, int x, int y) {
 
 }
 
-//draws the enclosure at the corners of the screen
 void Game::drawGrid() {
 
 	for (int i = 0;i < grid_x_size;i++) {
@@ -175,15 +213,167 @@ void Game::drawGrid() {
 	}
 }
 
-//returns the snake
 Snake Game::getSnake() {
 	return sn;
 
 }
 
-//returns the food
 Food Game::getFood() {
 	return fd;
 }
 
- 
+
+std::vector<int> Game::getRelativePosition(std::vector<int> head, std::vector<int> food, std::vector<int> tail) {
+	std::vector<int> diff;
+	int x_head_food = food[0] - head[0];
+	int y_head_food = food[1] - head[1];
+
+	diff.push_back(x_head_food);
+	diff.push_back(y_head_food);
+
+	int x_head_tail = tail[0] - head[0];
+	int y_head_tail = tail[1] - head[1];
+
+	diff.push_back(x_head_tail);
+	diff.push_back(y_head_tail);
+
+	return diff;
+
+}
+
+std::vector<int> Game::getState() {
+	std::vector<int> current_state;
+
+
+#ifdef BOOLEANS
+	bool left = false, right = false, straight = false;
+	if (sn.getDirection() == 0) {
+		if (sn.isThereDanger(sn.getHeadPosition()[0] - 10, sn.getHeadPosition()[1])) {
+			straight = true;
+		}
+		if (sn.isThereDanger(sn.getHeadPosition()[0], sn.getHeadPosition()[1] - 10)) {
+			left = true;
+		}
+		if (sn.isThereDanger(sn.getHeadPosition()[0], sn.getHeadPosition()[1] + 10)) {
+			right = true;
+		}
+	}
+	else if (sn.getDirection() == 1) {
+		if (sn.isThereDanger(sn.getHeadPosition()[0] + 10, sn.getHeadPosition()[1])) {
+			straight = true;
+		}
+		if (sn.isThereDanger(sn.getHeadPosition()[0], sn.getHeadPosition()[1] + 10)) {
+			left = true;
+		}
+		if (sn.isThereDanger(sn.getHeadPosition()[0], sn.getHeadPosition()[1] - 10)) {
+			right = true;
+		}
+	}
+	else if (sn.getDirection() == 2) {
+		if (sn.isThereDanger(sn.getHeadPosition()[0], sn.getHeadPosition()[1]) + 10) {
+			straight = true;
+		}
+		if (sn.isThereDanger(sn.getHeadPosition()[0] - 10, sn.getHeadPosition()[1])) {
+			left = true;
+		}
+		if (sn.isThereDanger(sn.getHeadPosition()[0] + 10, sn.getHeadPosition()[1])) {
+			right = true;
+		}
+	}
+	else {
+		if (sn.isThereDanger(sn.getHeadPosition()[0], sn.getHeadPosition()[1]) - 10) {
+			straight = true;
+		}
+		if (sn.isThereDanger(sn.getHeadPosition()[0] + 10, sn.getHeadPosition()[1])) {
+			left = true;
+		}
+		if (sn.isThereDanger(sn.getHeadPosition()[0] - 10, sn.getHeadPosition()[1])) {
+			right = true;
+		}
+	}
+
+	current_state.push_back(left);
+	current_state.push_back(right);
+	current_state.push_back(straight);
+	
+	
+	if (sn.getDirection() == 0) {
+		current_state.push_back(1);
+		current_state.push_back(0);
+		current_state.push_back(0);
+		current_state.push_back(0);
+	}else if (sn.getDirection() == 1) {
+		current_state.push_back(0);
+		current_state.push_back(1);
+		current_state.push_back(0);
+		current_state.push_back(0);
+	}else if (sn.getDirection() == 2) {
+		current_state.push_back(0);
+		current_state.push_back(0);
+		current_state.push_back(1);
+		current_state.push_back(0);
+	}else {
+		current_state.push_back(0);
+		current_state.push_back(0);
+		current_state.push_back(0);
+		current_state.push_back(1);
+	}
+
+	if (sn.getHeadPosition()[0] < fd.getX() && sn.getHeadPosition()[1] < fd.getY()) {
+			current_state.push_back(0);
+			current_state.push_back(1);
+			current_state.push_back(1);
+			current_state.push_back(0);
+		}
+	else if (sn.getHeadPosition()[0] > fd.getX() && sn.getHeadPosition()[1] < fd.getY()) {
+		current_state.push_back(1);
+		current_state.push_back(0);
+		current_state.push_back(1);
+		current_state.push_back(0);
+	}
+	else if (sn.getHeadPosition()[1] > fd.getY() && sn.getHeadPosition()[0] < fd.getX()) {
+		current_state.push_back(0);
+		current_state.push_back(1);
+		current_state.push_back(0);
+		current_state.push_back(1);
+	}
+	else if (sn.getHeadPosition()[1] > fd.getY() && sn.getHeadPosition()[0] > fd.getX()) {
+		current_state.push_back(1);
+		current_state.push_back(0);
+		current_state.push_back(0);
+		current_state.push_back(1);
+	}
+	else if(sn.getHeadPosition()[1] == fd.getY() && sn.getHeadPosition()[0] < fd.getX()) {
+		current_state.push_back(0);
+		current_state.push_back(1);
+		current_state.push_back(0);
+		current_state.push_back(0);
+	}
+	else if (sn.getHeadPosition()[0] == fd.getX() && sn.getHeadPosition()[1] < fd.getY()) {
+		current_state.push_back(0);
+		current_state.push_back(0);
+		current_state.push_back(1);
+		current_state.push_back(0);
+	}
+	else if (sn.getHeadPosition()[1] == fd.getY() && sn.getHeadPosition()[0] > fd.getX()) {
+		current_state.push_back(1);
+		current_state.push_back(0);
+		current_state.push_back(0);
+		current_state.push_back(0);
+	}
+	else if (sn.getHeadPosition()[0] == fd.getX() && sn.getHeadPosition()[1] > fd.getY()) {
+		current_state.push_back(0);
+		current_state.push_back(0);
+		current_state.push_back(0);
+		current_state.push_back(1);
+	}
+	else {
+		current_state.push_back(0);
+		current_state.push_back(0);
+		current_state.push_back(0);
+		current_state.push_back(0);
+	}
+#endif // BOOLEANS
+
+	return current_state;
+}
