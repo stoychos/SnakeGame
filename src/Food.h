@@ -1,6 +1,6 @@
 #pragma once
  
-#include "Snake.h"
+#include <vector>
 
 
 class Food {
