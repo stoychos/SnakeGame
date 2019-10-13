@@ -2,7 +2,7 @@ Dependencies
 
 You will need OpenGL and freeglut installed to run the game
 
-Q-Learning algorithm is used to solve Snake game
+Q-Learning algorithm is used to solve Snake game - the snake will need approximately 10 minutes of training for a good result
 
 Steps-
 
@@ -18,5 +18,5 @@ Representation of the game\
     1.3 4 booleans representing the current direction of movement\
   2. To every state of the game which is already present( they are stored in a map), is mapped a vector with actions and the value for each     action. Best action is that with max value for the current state.\
   
-  
+ 
   
