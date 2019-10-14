@@ -4,6 +4,8 @@ You will need OpenGL and freeglut to run the game
 
 **Windows**
 
+[Visual Studio](https://visualstudio.microsoft.com/downloads/)
+
 [Downloading OpenGL](https://www.khronos.org/opengl/wiki/Getting_Started#Downloading_OpenGL)
 
 
