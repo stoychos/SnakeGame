@@ -1,6 +1,12 @@
 Dependencies 
 
-You will need OpenGL and freeglut installed to run the game
+You will need OpenGL and freeglut to run the game
+
+**Windows**
+[Downloading OpenGL](https://www.khronos.org/opengl/wiki/Getting_Started#Downloading_OpenGL)
+[Latest stable freeglut release](http://freeglut.sourceforge.net/)
+
+**Linux**
 
 Q-Learning algorithm is used to solve Snake game - the snake will need approximately 10 minutes of training for a good result
 
